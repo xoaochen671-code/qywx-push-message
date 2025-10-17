@@ -1,7 +1,7 @@
-# from configparser import ConfigParser
+
 import time
 import requests
-import pymysql  # <-- 引入 PyMySQL
+import pymysql 
 import logging
 from dataclasses import dataclass
 from typing import List, Optional
@@ -18,8 +18,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-NamePath = "name.txt"
-EmailPath = "email.txt"
 UserList: List[User] = []
 
 
