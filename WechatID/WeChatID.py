@@ -37,7 +37,7 @@ class WeChatID:
         self.EmailList = EmailList if EmailList else []
         self.UserList = (
             [
-                User(name=name, email=email, WechatID=None)
+                User(Name=name, Email=email, WechatID=None)
                 for name, email in zip(self.NameList, self.EmailList)
             ]
             if self.NameList and self.EmailList
@@ -125,7 +125,7 @@ class WeChatID:
         finally:
             if conn:
                 conn.close()
-                self.db_conn = None
+                self.DBConn = None
 
     def __connect_db(self):
         if self.DBConn is None:
