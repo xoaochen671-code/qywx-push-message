@@ -1,4 +1,3 @@
-from turtle import update
 import requests
 import urllib.parse
 import pymysql
