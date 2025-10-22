@@ -4,9 +4,13 @@ from typing import Optional, List
 import Bot.RoomBot as RoomBot
 import Bot.SingleBot as SingleBot
 import WechatID.WeChatID as WeChatID
+import AuthToken.FeishuToken as FeishuToken
 import uvicorn
 import base64
 import configparser
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = ["*"]
 
 
 class TextInfo(BaseModel):
@@ -80,11 +84,17 @@ class MD(BaseModel):
 
 
 app = FastAPI(title="Bot")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"], 
+)
 
 def get_db_config():
     config_parser = configparser.ConfigParser()
-    config_parser.read("WechatID/config.ini")
+    config_parser.read("config.ini")
 
     db_config = {
         "host": config_parser.get("database", "host"),
@@ -95,6 +105,19 @@ def get_db_config():
         "charset": config_parser.get("database", "charset"),
     }
     return db_config
+
+
+def get_feishu_config():
+    config_parser = configparser.ConfigParser()
+    config_parser.read("config.ini")
+
+    feishu_config = {
+        "appid": config_parser.get("feishu_config", "appid"),
+        "scope": config_parser.get("feishu_config", "scope"),
+        "secret": config_parser.get("feishu_config", "secret"),
+        "redirecturl": config_parser.get("feishu_config","redirecturl")
+    }
+    return feishu_config
 
 
 @app.post("/api/chatroomPushText", summary="发送Text消息")
@@ -195,6 +218,78 @@ async def queryUser(ChineseName: Optional[str] = None, Email: Optional[str] = No
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"数据库查询失败: {str(e)}")
+
+
+@app.get("/api/getFeishuAuthUrl", summary="获取飞书授权URL")
+async def getFeishuAuthUrl():
+    try:
+        db_config = get_db_config()
+        feishu_config = get_feishu_config()
+        feishu_client = FeishuToken.FSToken(
+            DBConfig=db_config,
+            FSConfig=feishu_config,
+        )
+        
+        auth_url = feishu_client.get_url()
+        return {
+            "status": "ok", 
+            "auth_url": auth_url,
+            "message": "成功生成飞书授权URL"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"生成授权URL失败: {str(e)}")
+
+
+@app.get("/api/CreateFeishuToken", summary="获取飞书授权令牌")
+async def CreateFeishuToken(code: str):
+    try:
+        db_config = get_db_config()
+        feishu_config = get_feishu_config()
+        feishu_client = FeishuToken.FSToken(
+            DBConfig=db_config,
+            FSConfig=feishu_config,
+        )
+        
+        token = feishu_client.create_token(code=code)
+        
+        return {
+            "status": "ok", 
+            "message": "成功获取飞书授权令牌",
+            "data": {
+                "access_token": token.access_token,
+                "access_token_expires_at": token.access_token_expires_at,
+                "refresh_token": token.refresh_token,
+                "refresh_token_expires_at": token.refresh_token_expires_at
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取授权令牌失败: {str(e)}")
+
+
+@app.get("/api/getFeiShuAccessToken", summary="获取有效的飞书Access Token")
+async def getFeiShuAccessToken():
+    try:
+        db_config = get_db_config()
+        feishu_config = get_feishu_config()
+        feishu_client = FeishuToken.FSToken(
+            DBConfig=db_config,
+            FSConfig=feishu_config,
+        )
+        
+        access_token = feishu_client.get_token()
+        
+        return {
+            "status": "ok", 
+            "message": "成功获取Access Token",
+            "data": {
+                "access_token": access_token
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取Access Token失败: {str(e)}")
 
 
 if __name__ == "__main__":
