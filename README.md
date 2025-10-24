@@ -21,22 +21,30 @@
 - 用户信息查询API
 - 支持按姓名或邮箱查询用户
 
+### 🚀 飞书集成
+- 飞书OAuth授权流程
+- 自动令牌管理和刷新
+- Access Token获取接口
+
 ### 🌐 RESTful API
 - 基于FastAPI构建的高性能API
 - 自动API文档生成
 - 完整的错误处理机制
+- CORS跨域支持
 
 ## 项目结构
 
 ```
 wechat_id_pull/
 ├── API.py                 # FastAPI应用主文件
+├── config.ini             # 配置文件
 ├── WechatID/
-│   ├── WeChatID.py       # 微信ID获取核心逻辑
-│   └── config.ini        # 配置文件
+│   └── WeChatID.py       # 微信ID获取核心逻辑
 ├── Bot/
 │   ├── RoomBot.py        # 群聊机器人
 │   └── SingleBot.py      # 单聊机器人
+├── AuthToken/
+│   └── FeishuToken.py    # 飞书令牌管理
 ├── pyproject.toml        # 项目依赖配置
 └── README.md            # 项目说明文档
 ```
@@ -59,7 +67,7 @@ pip install -r requirements.txt
 
 ### 配置设置
 
-1. 编辑 `WechatID/config.ini` 配置文件：
+1. 编辑 `config.ini` 配置文件：
 
 ```ini
 [weixin_config]
@@ -76,6 +84,12 @@ user = your_db_user
 password = your_db_password
 database = your_db_name
 charset = utf8mb4
+
+[feishu_config]
+appid = your_feishu_app_id
+scope = your_feishu_scope
+secret = your_feishu_app_secret
+redirecturl = your_redirect_url
 ```
 
 2. 确保MySQL数据库中存在 `users` 表：
@@ -177,6 +191,71 @@ GET /api/queryUser?Email=zhangsan@example.com
 GET /api/queryUser?ChineseName=张三&Email=zhangsan@example.com
 ```
 
+**响应示例：**
+```json
+[
+    {
+        "name": "张三",
+        "email": "zhangsan@example.com",
+        "wxid": "ZhangSan"
+    }
+]
+```
+
+### 飞书授权接口
+
+#### 1. 获取飞书授权URL
+```http
+GET /api/getFeishuAuthUrl
+```
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "auth_url": "https://open.feishu.cn/open-apis/authen/v1/authorize?...",
+    "message": "成功生成飞书授权URL"
+}
+```
+
+#### 2. 获取飞书授权令牌(用于接受飞书Code)
+```http
+GET /api/CreateFeishuToken?code=your_auth_code
+```
+
+**参数说明：**
+- `code` (必填): 飞书授权码
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "message": "成功获取飞书授权令牌",
+    "data": {
+        "access_token": "access_token_string",
+        "access_token_expires_at": 1234567890,
+        "refresh_token": "refresh_token_string",
+        "refresh_token_expires_at": 1234567890
+    }
+}
+```
+
+#### 3. 获取有效的飞书Access Token
+```http
+GET /api/getFeiShuAccessToken
+```
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "message": "成功获取Access Token",
+    "data": {
+        "access_token": "access_token_string"
+    }
+}
+```
+
 ## 核心类说明
 
 ### WeChatID类
@@ -193,6 +272,12 @@ GET /api/queryUser?ChineseName=张三&Email=zhangsan@example.com
 ### SingleBot类
 - `PushText()`: 推送文本消息给指定用户
 - `PushMarkdown()`: 推送Markdown消息给指定用户
+
+### FeishuToken类
+- `__init__()`: 初始化数据库配置和飞书配置
+- `get_url()`: 生成飞书OAuth授权URL
+- `create_token()`: 使用授权码创建飞书令牌
+- `get_token()`: 获取有效的Access Token（自动刷新）
 
 ## 使用示例
 
