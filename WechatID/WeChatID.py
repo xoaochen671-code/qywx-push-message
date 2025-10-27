@@ -1,7 +1,6 @@
-
 import time
 import requests
-import pymysql 
+import pymysql
 import logging
 from dataclasses import dataclass
 from typing import List, Optional
@@ -22,7 +21,6 @@ UserList: List[User] = []
 
 
 class WeChatID:
-
     def __init__(
         self,
         DBConfig: dict,
@@ -138,6 +136,7 @@ class WeChatID:
         return self.DBConn
 
     def SaveToDB(self):
+        self.DBConn = self.__connect_db()
         if not self.DBConn:
             logging.error("Cannot connect to database, skipping save to db.")
             return False
@@ -179,8 +178,7 @@ class WeChatID:
         ChineseName: Optional[str] = None,
         Email: Optional[str] = None,
     ) -> Optional[List[User]]:
-        if not self.DBConn:
-            self.DBConn = self.__connect_db()
+        self.DBConn = self.__connect_db()
         if not self.DBConn:
             logging.error("Cannot connect to database, skipping query from db.")
             return None
@@ -210,6 +208,5 @@ class WeChatID:
             return None
         finally:
             cursor.close()
-
-
-
+            self.DBConn.close()
+            self.DBConn = None
