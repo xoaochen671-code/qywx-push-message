@@ -256,6 +256,148 @@ GET /api/getFeiShuAccessToken
 }
 ```
 
+#### 4. 查询飞书多维表格
+```http
+POST /api/queryFeishuDB
+Content-Type: application/json
+
+{
+    "APPToken": "your_app_token",
+    "TableID": "your_table_id",
+    "FieldNames": ["字段1", "字段2", "字段3"],
+    "Filter": {
+        "conjunction": "and",
+        "conditions": [
+            {
+                "field_name": "字段名称",
+                "operator": "is",
+                "value": "匹配值"
+            }
+        ]
+    }
+}
+```
+
+**参数说明：**
+- `APPToken` (必填): 飞书多维表格应用Token
+- `TableID` (必填): 多维表格的table_id
+- `FieldNames` (必填): 需要查询的字段名称列表
+- `Filter` (可选): 筛选条件
+  - `conjunction`: 条件之间的逻辑连接词，可选值 `"and"` 或 `"or"`，默认 `"and"`
+  - `conditions`: 筛选条件数组
+    - `field_name`: 字段名称
+    - `operator`: 条件运算符，可选值：
+      - `is`: 等于
+      - `isNot`: 不等于
+      - `contains`: 包含
+      - `doesNotContain`: 不包含
+      - `isEmpty`: 为空
+      - `isNotEmpty`: 不为空
+      - `isGreater`: 大于
+      - `isGreaterEqual`: 大于等于
+      - `isLess`: 小于
+      - `isLessEqual`: 小于等于
+    - `value`: 用于比较的值（当运算符为 `isEmpty` 或 `isNotEmpty` 时可为空）
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "message": "查询成功",
+    "data": [
+        {
+            "record_id": "rec123",
+            "fields": {
+                "字段1": "值1",
+                "字段2": "值2",
+                "字段3": "值3"
+            }
+        }
+    ],
+    "total": 1
+}
+```
+
+#### 5. 写入飞书多维表格
+```http
+POST /api/writeFeishuDB
+Content-Type: application/json
+
+{
+    "APPToken": "your_app_token",
+    "TableID": "your_table_id",
+    "Records": [
+        {
+            "fields": {
+                "字段1": "值1",
+                "字段2": "值2",
+                "字段3": "值3"
+            }
+        },
+        {
+            "fields": {
+                "字段1": "值4",
+                "字段2": "值5",
+                "字段3": "值6"
+            }
+        }
+    ]
+}
+```
+
+**参数说明：**
+- `APPToken` (必填): 飞书多维表格应用Token
+- `TableID` (必填): 多维表格的table_id
+- `Records` (必填): 要写入的记录列表
+  - 每条记录是一个对象，包含 `fields` 字段
+  - `fields` 是一个对象，键为字段名，值为字段值
+  - 支持批量写入，每批最多500条记录，超过会自动分批
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "message": "成功写入 2 条记录",
+    "total_records": 2
+}
+```
+
+**注意事项：**
+- 字段名必须与飞书多维表格中的字段名完全一致
+- 字段值类型需要符合飞书多维表格中定义的字段类型
+- 如果记录数超过500条，系统会自动分批写入
+- 所有记录必须成功写入才会返回成功响应
+
+#### 6. 清空飞书多维表格
+```http
+POST /api/resetFeishuDB
+Content-Type: application/json
+
+{
+    "APPToken": "your_app_token",
+    "TableID": "your_table_id"
+}
+```
+
+**参数说明：**
+- `APPToken` (必填): 飞书多维表格应用Token
+- `TableID` (必填): 多维表格的table_id
+
+**响应示例：**
+```json
+{
+    "status": "ok",
+    "message": "成功清空表格数据"
+}
+```
+
+**注意事项：**
+- ⚠️ **危险操作**：此操作将删除表格中的所有记录，且不可恢复！
+- 删除操作会自动分批进行（每批最多500条）
+- 仅删除数据记录，不会删除表格结构和字段定义
+- 如果表格为空，直接返回成功
+- 建议在生产环境中谨慎使用，或添加额外的确认机制
+
 ## 核心类说明
 
 ### WeChatID类
@@ -278,6 +420,12 @@ GET /api/getFeiShuAccessToken
 - `get_url()`: 生成飞书OAuth授权URL
 - `create_token()`: 使用授权码创建飞书令牌
 - `get_token()`: 获取有效的Access Token（自动刷新）
+
+### DBOperation类
+- `__init__()`: 初始化Access Token和App Token
+- `Query()`: 查询飞书多维表格数据（支持筛选和分页）
+- `Write()`: 批量写入飞书多维表格数据（自动分批，每批最多500条）
+- `Reset()`: 清空飞书多维表格所有数据（危险操作，自动分批删除）
 
 ## 使用示例
 
